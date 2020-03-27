@@ -25,31 +25,28 @@ def stackframes(frames):
 
 def preprocess(frames):
     assert len(frames) == 4, "Need 4 frames for preprocessing"
-    return stackframes([crop(grayscale(frame)) for frame in frames])
+    p = stackframes([crop(grayscale(frame)/255) for frame in frames])
 
-def random_action(episode, total_episodes):
-    epsilon = 0
-    fraction_of_total = episode/total_episodes
+    return torch.tensor(p, dtype=torch.float).permute(2,0,1)
 
-    if fraction_of_total <= 0.05:
-        epsilon = 1
+def process_batch(batch, model, device, num_actions, gamma):
 
-    if fraction_of_total>0.05 and fraction_of_total<=0.2:
-        epsilon = 0.7
+    prev_state = torch.stack([i[0] for i in batch])
+    action = np.asarray([i[1] for i in batch])
+    r = torch.stack([torch.tensor(i[2], dtype=torch.float) for i in batch])
+    next_state = torch.stack([i[3] for i in batch])
 
-    if fraction_of_total>0.2 and fraction_of_total<=0.4:
-        epsilon = 0.5
+    y = torch.zeros([len(batch), num_actions], dtype=torch.float)
 
-    if fraction_of_total>0.4 and fraction_of_total<=0.5:
-        epsilon = 0.4
+    max_next_state_qvals = torch.max(model(next_state.to(device=device)).detach().cpu(), 1)[0]
 
-    if fraction_of_total>0.5 and fraction_of_total<=0.7:
-        epsilon = 0.2
+    term_idx = np.where(r == -10)[0]
+    non_term_idx = np.where(r != -10)[0]
 
-    if fraction_of_total>0.7:
-        epsilon = 0.1
+    y[non_term_idx, action[non_term_idx]] = r[non_term_idx] + gamma * max_next_state_qvals[non_term_idx]
+    y[term_idx, action[term_idx]] = r[term_idx]
 
-    return epsilon > np.random.random()
+    return prev_state, y
 
 
 class ConvNet(nn.Module):

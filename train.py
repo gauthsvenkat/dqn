@@ -7,9 +7,10 @@ from time import time
 import gym
 import cv2
 import numpy as np
-from utils import ConvNet, preprocess, random_action
+from utils import ConvNet, preprocess, process_batch
 from torchvision.transforms import ToTensor
 import os
+import random
 
 parser = argparse.ArgumentParser(description='Train DQN')
 parser.add_argument('--save_location', '-sl', type=str, default='model/{}-epoch-{}.pth')
@@ -18,6 +19,7 @@ parser.add_argument('--save_every', '-se', type=int, default=100)
 parser.add_argument('--device', '-d', type=str, default=None)
 parser.add_argument('--replay_size', '-rs', type=int, default=1000)
 parser.add_argument('--render_env', '-re', action='store_true')
+parser.add_argument('--batch_size', '-bs', type=int, default=64)
 args = parser.parse_args()
 
 if not args.device:
@@ -91,9 +93,9 @@ for e in range(args.episodes):
             continue
 
         previous_state = preprocess(prev_buff)
-        x = tensor(previous_state)[None].to(device=args.device)
+        x = previous_state[None].to(device=args.device)
 
-        action = env.action_space.sample() if EPSILON > np.random.random() else int(torch.argmax(model(x)))
+        action = env.action_space.sample() if EPSILON > random.random() else int(torch.argmax(model(x)))
         #print(' Action - ', action)
         observation, reward, done, info = env.step(action)
 
@@ -103,20 +105,14 @@ for e in range(args.episodes):
         r = -10 if done else (reward if reward else -1)
         next_state = preprocess(buff)
 
-        REPLAY_MEMORY.append((previous_state, action, r, next_state))
+        REPLAY_MEMORY.pop(0); REPLAY_MEMORY.append((previous_state, action, r, next_state))
 
         #DO THE ACTUAL LEARNING
 
-        rm_prev_state, rm_action, rm_r, rm_next_state = REPLAY_MEMORY.pop(np.random.randint(args.replay_size))
-
-        rm_prev_state = tensor(rm_prev_state)[None].to(device=args.device)
-        rm_r = torch.tensor(rm_r, dtype=torch.float).to(device=args.device)
-        rm_next_state = tensor(rm_next_state)[None].to(device=args.device)
-
-        y = rm_r if rm_r==-10 else rm_r + GAMMA * torch.max(model(rm_next_state).detach())
+        prev_states, ys = process_batch(random.sample(REPLAY_MEMORY, args.batch_size), model, args.device, int(env.action_space.n), GAMMA)
 
         optimizer.zero_grad()
-        loss = mse_loss(model(rm_prev_state)[0][rm_action], y)
+        loss = mse_loss(model(prev_states.to(device=args.device)), ys.to(device=args.device))
         loss.backward()
         optimizer.step()
 
