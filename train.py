@@ -11,6 +11,7 @@ from utils import ConvNet, preprocess, process_batch
 from torchvision.transforms import ToTensor
 import os
 import random
+from collections import deque
 
 parser = argparse.ArgumentParser(description='Train DQN')
 parser.add_argument('--save_location', '-sl', type=str, default='model/{}-epoch-{}.pth')
@@ -44,7 +45,7 @@ print('Initializing replay memory with {} samples'.format(args.replay_size))
 
 while len(REPLAY_MEMORY) < args.replay_size:
     observation = env.reset()
-    buff = []
+    buff = deque()
     prev_buff = []
     done = False
 
@@ -54,14 +55,14 @@ while len(REPLAY_MEMORY) < args.replay_size:
         observation, reward, done, info = env.step(action)
 
         if len(buff) < 4:
-            buff.append(observation)
+            buff.appendleft(observation)
             continue
 
-        buff.pop(0); buff.append(observation)
+        buff.pop(); buff.appendleft(observation)
 
         previous_state = preprocess(prev_buff)    
         #r = -1 if done else int(reward)
-        r = -10 if done else (reward if reward else -1)
+        r = -1 if done else reward
         next_state = preprocess(buff)
 
         REPLAY_MEMORY.append((previous_state, action, r, next_state))
@@ -70,7 +71,7 @@ REPLAY_MEMORY = REPLAY_MEMORY[-args.replay_size:] #trim to have only the last nu
 
 for e in range(args.episodes):
     observation = env.reset()
-    buff = []
+    buff = deque()
     prev_buff = []
     done = False
 
@@ -89,7 +90,7 @@ for e in range(args.episodes):
 
         if len(buff) < 4:
             observation, reward, done, info = env.step(env.action_space.sample())
-            buff.append(observation)
+            buff.appendleft(observation)
             continue
 
         previous_state = preprocess(prev_buff)
@@ -99,10 +100,10 @@ for e in range(args.episodes):
         #print(' Action - ', action)
         observation, reward, done, info = env.step(action)
 
-        buff.pop(0); buff.append(observation)
+        buff.pop(); buff.appendleft(observation)
 
         #r = -1 if done else int(reward)
-        r = -10 if done else (reward if reward else -1)
+        r = -1 if done else reward
         next_state = preprocess(buff)
 
         REPLAY_MEMORY.pop(0); REPLAY_MEMORY.append((previous_state, action, r, next_state))
