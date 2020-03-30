@@ -50,6 +50,7 @@ while len(REPLAY_MEMORY) < args.replay_size:
     done = False
 
     while not done:
+
         prev_buff = buff
         action = env.action_space.sample()
         observation, reward, done, info = env.step(action)
@@ -61,7 +62,7 @@ while len(REPLAY_MEMORY) < args.replay_size:
         buff.pop(); buff.appendleft(observation)
 
         previous_state = preprocess(prev_buff)    
-        #r = -1 if done else int(reward)
+
         r = -1 if done else reward
         next_state = preprocess(buff)
 
@@ -93,6 +94,8 @@ for e in range(args.episodes):
             buff.appendleft(observation)
             continue
 
+        lives = info['ale.lives']
+
         previous_state = preprocess(prev_buff)
         x = previous_state[None].to(device=args.device)
 
@@ -100,10 +103,11 @@ for e in range(args.episodes):
         #print(' Action - ', action)
         observation, reward, done, info = env.step(action)
 
+        lost_life = info['ale.lives'] < lives
+
         buff.pop(); buff.appendleft(observation)
 
-        #r = -1 if done else int(reward)
-        r = -1 if done else reward
+        r = -1 if done or lost_life else reward
         next_state = preprocess(buff)
 
         REPLAY_MEMORY.pop(0); REPLAY_MEMORY.append((previous_state, action, r, next_state))
