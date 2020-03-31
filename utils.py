@@ -40,8 +40,8 @@ def process_batch(batch, model, device, num_actions, gamma):
 
     max_next_state_qvals = torch.max(model(next_state.to(device=device)).detach().cpu(), 1)[0]
 
-    term_idx = np.where(r == -10)[0]
-    non_term_idx = np.where(r != -10)[0]
+    term_idx = np.where(r == -1)[0]
+    non_term_idx = np.where(r != -1)[0]
 
     y[non_term_idx, action[non_term_idx]] = r[non_term_idx] + gamma * max_next_state_qvals[non_term_idx]
     y[term_idx, action[term_idx]] = r[term_idx]
