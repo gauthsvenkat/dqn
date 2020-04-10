@@ -21,7 +21,7 @@ def preprocess(frames):
     return stackframes([resize_frame(grayscale(frame)) for frame in frames])
 
 def tensor(x, device=None):
-    if len(x.shape) == 3:
+    if isinstance(x, np.ndarray):
         x = torch.tensor(x/255, dtype=torch.float).permute(2,0,1)
     else:
         x = torch.tensor(x, dtype=torch.float)
@@ -32,7 +32,7 @@ def tensor(x, device=None):
 def process_batch(batch, target_model, num_actions, gamma, device):
 
     prev_state = torch.stack([tensor(i[0]) for i in batch])
-    action = np.asarray([i[1] for i in batch])
+    action = [i[1] for i in batch]
     r = torch.stack([tensor(i[2]) for i in batch])
     next_state = torch.stack([tensor(i[3]) for i in batch])
     done = torch.stack([tensor(i[4]) for i in batch])

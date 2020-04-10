@@ -67,7 +67,7 @@ while REPLAY_MEMORY.length() < args.start_training:
         previous_state = preprocess(prev_buff)    
         next_state = preprocess(buff)
 
-        REPLAY_MEMORY.put(previous_state, np.uint8(action), np.int8(reward), next_state, np.uint8(done))
+        REPLAY_MEMORY.put(previous_state, action, reward, next_state, done)
 
 
 for e in range(args.episodes):
@@ -108,11 +108,11 @@ for e in range(args.episodes):
 
         next_state = preprocess(buff)
 
-        REPLAY_MEMORY.put(previous_state, np.uint8(action), np.int8(reward), next_state, np.uint8(done))
+        REPLAY_MEMORY.put(previous_state, action, reward, next_state, done)
 
         #DO THE ACTUAL LEARNING
 
-        prev_states, ys = process_batch(REPLAY_MEMORY.sample(), target_model, int(env.action_space.n), args.gamma, args.device)
+        prev_states, ys = process_batch(REPLAY_MEMORY.sample(), target_model, env.action_space.n, args.gamma, args.device)
 
         optimizer.zero_grad()
         loss = huber_loss(model(prev_states.to(device=args.device)), ys.to(device=args.device))
