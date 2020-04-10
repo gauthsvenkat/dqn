@@ -14,16 +14,16 @@ parser.add_argument('--save_location', '-sl', type=str, default='model/{}-epoch-
 parser.add_argument('--episodes', '-e', type=int, default=1000)
 parser.add_argument('--save_every', '-se', type=int, default=100)
 parser.add_argument('--device', '-d', type=str, default=None)
-parser.add_argument('--replay_size', '-rs', type=int, default=10000)
+parser.add_argument('--replay_size', '-rs', type=int, default=25000)
 parser.add_argument('--render_env', '-re', action='store_true')
 parser.add_argument('--batch_size', '-bs', type=int, default=64)
 parser.add_argument('--start_training', '-st', type=int)
-parser.add_argument('--update_net_every', '-un', type=int, default=100)
+parser.add_argument('--update_net_every', '-un', type=int, default=10)
 parser.add_argument('--epsilon', '-ep', type=float, default=1)
-parser.add_argument('--eps_decay', '-epd', type=float, default=0.01)
+parser.add_argument('--eps_decay', '-epd', type=float, default=0.996)
 parser.add_argument('--min_epsilon', '-mep', type=float, default=0.01)
 parser.add_argument('--gamma', '-g', type=float, default=0.99)
-parser.add_argument('--learning_rate', '-lr', type=float, default=0.00025)
+parser.add_argument('--learning_rate', '-lr', type=float, default=0.00625)
 args = parser.parse_args()
 
 if not args.device:
@@ -67,7 +67,7 @@ while REPLAY_MEMORY.length() < args.start_training:
         previous_state = preprocess(prev_buff)    
         next_state = preprocess(buff)
 
-        REPLAY_MEMORY.put(previous_state, np.uint8(action), np.int8(reward), next_state, done)
+        REPLAY_MEMORY.put(previous_state, np.uint8(action), np.int8(reward), next_state, np.uint8(done))
 
 
 for e in range(args.episodes):
@@ -80,7 +80,7 @@ for e in range(args.episodes):
     episode_steps = 0
     episode_reward = 0
 
-    print('Episode {} - Epsilon = {}, '.format(e+1, args.epsilon), end='')
+    print('Episode {} - Epsilon = {:.3f}, '.format(e+1, args.epsilon), end='')
 
     while not done:
 
@@ -108,7 +108,7 @@ for e in range(args.episodes):
 
         next_state = preprocess(buff)
 
-        REPLAY_MEMORY.put(previous_state, action, np.int8(reward), next_state, done)
+        REPLAY_MEMORY.put(previous_state, np.uint8(action), np.int8(reward), next_state, np.uint8(done))
 
         #DO THE ACTUAL LEARNING
 
@@ -124,11 +124,10 @@ for e in range(args.episodes):
         episode_reward+=reward
 
     if args.epsilon > args.min_epsilon:
-        args.epsilon-=args.epsilon*args.eps_decay
+        args.epsilon*=args.eps_decay
 
     if (e+1)%args.update_net_every == 0:
         target_model.load_state_dict(model.state_dict())
-        #print(' Updated target q network weights ')
 
     print('Total steps = {}, Reward = {} , Average Loss = {}'.format(episode_steps, episode_reward, episode_loss/episode_steps))
 
@@ -138,7 +137,6 @@ for e in range(args.episodes):
 
         torch.save(model.state_dict(), args.save_location.format('model', e+1))
         torch.save(optimizer.state_dict(), args.save_location.format('opt', e+1))
-        print('Saved model and optimizer weights for episode {}'.format(e+1))
 
 env.close()
 

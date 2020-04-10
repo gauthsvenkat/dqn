@@ -23,7 +23,7 @@ def preprocess(frames):
 def tensor(x, device=None):
     if len(x.shape) == 3:
         x = torch.tensor(x/255, dtype=torch.float).permute(2,0,1)
-    elif len(x.shape) == 0:
+    else:
         x = torch.tensor(x, dtype=torch.float)
 
     return x if device is None else x.to(device=device)
@@ -35,17 +35,13 @@ def process_batch(batch, target_model, num_actions, gamma, device):
     action = np.asarray([i[1] for i in batch])
     r = torch.stack([tensor(i[2]) for i in batch])
     next_state = torch.stack([tensor(i[3]) for i in batch])
-    done = np.asarray([i[4] for i in batch])
+    done = torch.stack([tensor(i[4]) for i in batch])
 
-    y = torch.zeros([len(batch), num_actions], dtype=torch.float)
+    y = target_model(prev_state.to(device=device)).detach().cpu()
 
     max_next_state_qvals = torch.max(target_model(next_state.to(device=device)).detach().cpu(), 1)[0]
 
-    term_idx = np.where(done == True)[0]
-    non_term_idx = np.where(done == False)[0]
-
-    y[non_term_idx, action[non_term_idx]] = r[non_term_idx] + gamma * max_next_state_qvals[non_term_idx]
-    y[term_idx, action[term_idx]] = r[term_idx]
+    y[range(len(batch)), action] = r + (1-done) * gamma * max_next_state_qvals
 
     return prev_state, y
 
@@ -87,3 +83,19 @@ class DQN(nn.Module):
         x = self.out(x)
         
         return x
+
+'''class DQN_cart(nn.Module):
+    def __init__(self, num_actions=None, device=None):
+        super(DQN_cart, self).__init__()
+
+        self.fc1 = nn.Linear(4, 32)
+        self.fc2 = nn.Linear(32, 32)
+        self.out = nn.Linear(32, num_actions)
+        self.to(device)
+        self.train() #always in train mode cause it only matters when we have batchnorm or dropout layers
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.out(x)
+        return x'''
