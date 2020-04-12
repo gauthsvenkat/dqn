@@ -21,7 +21,7 @@ def preprocess(frames):
     return stackframes([resize_frame(grayscale(frame)) for frame in frames])
 
 def tensor(x, device=None):
-    if isinstance(x, np.ndarray):
+    if isinstance(x, np.ndarray) and len(x.shape) == 3:
         x = torch.tensor(x/255, dtype=torch.float).permute(2,0,1)
     else:
         x = torch.tensor(x, dtype=torch.float)
@@ -45,7 +45,7 @@ def process_batch(batch, target_model, num_actions, gamma, device):
 
     return prev_state, y
 
-class ReplayBuffer:
+'''class ReplayBuffer:
     def __init__(self, capacity, batch_size):
         self.buffer = deque(maxlen=capacity)
         self.batch_size = batch_size
@@ -57,7 +57,7 @@ class ReplayBuffer:
         return random.sample(self.buffer, self.batch_size)
 
     def length(self):
-        return len(self.buffer)
+        return len(self.buffer)'''
 
 class DQN(nn.Module):
     def __init__(self, num_actions=None, device=None):
@@ -84,7 +84,7 @@ class DQN(nn.Module):
         
         return x
 
-'''class DQN_cart(nn.Module):
+class DQN_cart(nn.Module):
     def __init__(self, num_actions=None, device=None):
         super(DQN_cart, self).__init__()
 
@@ -98,4 +98,4 @@ class DQN(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.out(x)
-        return x'''
+        return x
