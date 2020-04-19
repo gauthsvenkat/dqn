@@ -45,19 +45,6 @@ def process_batch(batch, target_model, num_actions, gamma, device):
 
     return prev_state, y
 
-'''class ReplayBuffer:
-    def __init__(self, capacity, batch_size):
-        self.buffer = deque(maxlen=capacity)
-        self.batch_size = batch_size
-
-    def put(self, prev_state, action, reward, next_state, done):
-        self.buffer.append([prev_state, action, reward, next_state, done])
-
-    def sample(self):
-        return random.sample(self.buffer, self.batch_size)
-
-    def length(self):
-        return len(self.buffer)'''
 
 class DQN(nn.Module):
     def __init__(self, num_actions=None, device=None):
@@ -82,20 +69,4 @@ class DQN(nn.Module):
         x = F.relu(self.fc(x))
         x = self.out(x)
         
-        return x
-
-class DQN_cart(nn.Module):
-    def __init__(self, num_actions=None, device=None):
-        super(DQN_cart, self).__init__()
-
-        self.fc1 = nn.Linear(4, 32)
-        self.fc2 = nn.Linear(32, 32)
-        self.out = nn.Linear(32, num_actions)
-        self.to(device)
-        self.train() #always in train mode cause it only matters when we have batchnorm or dropout layers
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.out(x)
         return x

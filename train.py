@@ -152,21 +152,3 @@ for e in range(args.resume_episode, args.episodes):
         torch.save(optimizer.state_dict(), args.save_location.format('opt', e+1))
 
 env.close()
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
